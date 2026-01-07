@@ -11,7 +11,9 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: true,
   methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 });
+
 
 /* ✅ MongoDB */
 mongoose
