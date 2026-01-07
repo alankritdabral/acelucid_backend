@@ -14,22 +14,16 @@ await app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
-
-/* ✅ MongoDB */
-mongoose
-  .connect(process.env.MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("🗃️ MongoDB connected"))
-  .catch((err) => {
+  .catch(err => {
     console.error(err);
     process.exit(1);
   });
 
-/* ✅ Routes */
 app.register(moviesRoutes, { prefix: "/api" });
 
-/* ✅ Root */
 app.get("/", async () => ({ status: "Backend running 🚀" }));
 
-/* ✅ Start */
 const port = process.env.PORT || 4000;
 await app.listen({ port, host: "0.0.0.0" });
