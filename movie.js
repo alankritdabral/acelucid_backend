@@ -1,8 +1,4 @@
-import Recommendation from "./recommendation.js";
 import axios from "axios";
-
-const NVIDIA_URL = process.env.NVIDIA_URL;
-const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;  
 
 export default async function (fastify) {
   fastify.post("/recommend", async (request, reply) => {
@@ -13,18 +9,34 @@ export default async function (fastify) {
         return reply.status(400).send({ error: "Genre is required" });
       }
 
-      const prompt = `You are a JSON API.Respond ONLY with valid JSON.Do not include explanations or markdown.Return exactly 5 movie names for the given genre.
-                  Output format:
-                {
-                  genre: "${genre}",
-                  recommended_movies: [
-                    "Movie1",
-                    "Movie2",
-                    "Movie3",
-                    "Movie4",
-                    "Movie5"
-                  ],
-                }`;
+      const NVIDIA_URL = process.env.NVIDIA_URL;
+      const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
+
+      if (!NVIDIA_URL || !NVIDIA_API_KEY) {
+        fastify.log.error({
+          NVIDIA_URL,
+          NVIDIA_API_KEY: NVIDIA_API_KEY ? "Loaded" : "Missing",
+        });
+
+        return reply.status(500).send({
+          error: "Configuration error",
+          details: "Environment variables not loaded",
+        });
+      }
+
+      const prompt = `You are a JSON API. Respond ONLY with valid JSON.
+Return exactly 5 movie names for the genre "${genre}".
+
+{
+  "genre": "${genre}",
+  "recommended_movies": [
+    "Movie1",
+    "Movie2",
+    "Movie3",
+    "Movie4",
+    "Movie5"
+  ]
+}`;
 
       const aiResponse = await axios.post(
         NVIDIA_URL,
@@ -35,7 +47,7 @@ export default async function (fastify) {
             { role: "user", content: prompt },
           ],
           max_tokens: 256,
-          temperature: 1,
+          temperature: 0.7,
         },
         {
           headers: {
@@ -46,27 +58,14 @@ export default async function (fastify) {
         }
       );
 
-      const message = aiResponse.data.choices?.[0]?.message;
-      const text = Array.isArray(message?.content)
-        ? message.content.map((block) => block.text ?? "").join("")
-        : message?.content ?? "";
+      const content =
+        aiResponse.data.choices?.[0]?.message?.content || "";
 
-      const movies = text
-        .split("\n")
-        .map((line) => line.replace(/^\d+[\).\s]*/, "").trim())
-        .filter(Boolean);
-
-      // const record = new Recommendation({
-      //   userInput: genre,
-      //   recommendedMovies: movies,
-      // });
-
-      // await record.save();
+      const json = JSON.parse(content); // ✅ since you forced JSON output
 
       reply.send({
-        genre,
-        movies,
-        saved: true,
+        genre: json.genre,
+        movies: json.recommended_movies,
       });
     } catch (err) {
       console.error("AI Error:", err.response?.data || err.message);
