@@ -11,13 +11,10 @@ const app = Fastify({ logger: true });
 await app.register(cors, {
   origin: "https://acelucid-frontend-6xyw.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-  optionsSuccessStatus: 204,
+  allowedHeaders: ["Content-Type"],
 });
 
 const mongo_uri = process.env.MONGODB_URI;
-
 if (!mongo_uri) {
   console.error("❌ MONGODB_URI is not defined");
   process.exit(1);
@@ -27,13 +24,11 @@ mongoose
   .connect(mongo_uri)
   .then(() => console.log("🗃️ Connected to MongoDB Atlas"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error("❌ DB connection error:", err);
     process.exit(1);
   });
 
-
 app.register(moviesRoutes, { prefix: "/api" });
-
 
 app.get("/", async () => {
   return { status: "Backend running 🚀" };
