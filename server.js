@@ -10,9 +10,20 @@ dotenv.config();
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-  origin: "http://localhost:3005",
+  origin: (origin, cb) => {
+    const allowed = [
+      "https://acelucid-frontend-6xyw.vercel.app",
+    ];
+
+    if (!origin || allowed.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Not allowed by CORS"), false);
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 });
+
 
 const mongo_uri = process.env.MONGODB_URI;
 if (!mongo_uri) {
