@@ -8,20 +8,21 @@ dotenv.config();
 
 const app = Fastify({ logger: true });
 
-/* ✅ CORS */
 await app.register(cors, {
-  origin: "https://acelucid-frontend-6xyw.vercel.app",
+  origin: [
+    "https://acelucid-frontend-6xyw.vercel.app",
+    "https://acelucid-frontend.vercel.app" // include both if needed
+  ],
   methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  preflightContinue: true,
 });
 
-/* ✅ FORCE PREFLIGHT RESPONSE (REQUIRED ON VERCEL) */
+// This optional override is only needed in rare cases:
 app.options("/*", async (request, reply) => {
   reply
-    .header("Access-Control-Allow-Origin", "https://acelucid-frontend-6xyw.vercel.app")
+    .header("Access-Control-Allow-Origin", request.headers.origin || "*")
     .header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
     .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    .status(204)
     .send();
 });
 
