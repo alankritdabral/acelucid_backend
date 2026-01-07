@@ -14,12 +14,12 @@ await app.register(cors, {
   allowedHeaders: ["Content-Type", "Authorization"],
 });
 
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("🗃️ MongoDB connected"))
-  .catch(err => {
-    console.error(err);
-    process.exit(1);
-  });
+// mongoose.connect(process.env.MONGODB_URI)
+//   .then(() => console.log("🗃️ MongoDB connected"))
+//   .catch(err => {
+//     console.error(err);
+//     process.exit(1);
+//   });
 
 app.register(moviesRoutes, { prefix: "/api" });
 

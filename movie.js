@@ -56,12 +56,12 @@ export default async function (fastify) {
         .map((line) => line.replace(/^\d+[\).\s]*/, "").trim())
         .filter(Boolean);
 
-      const record = new Recommendation({
-        userInput: genre,
-        recommendedMovies: movies,
-      });
+      // const record = new Recommendation({
+      //   userInput: genre,
+      //   recommendedMovies: movies,
+      // });
 
-      await record.save();
+      // await record.save();
 
       reply.send({
         genre,
