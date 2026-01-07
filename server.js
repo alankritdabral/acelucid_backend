@@ -8,41 +8,38 @@ dotenv.config();
 
 const app = Fastify({ logger: true });
 
+/* ✅ CORS */
 await app.register(cors, {
   origin: "https://acelucid-frontend-6xyw.vercel.app",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type"],
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  preflightContinue: true,
 });
 
-const mongo_uri = process.env.MONGODB_URI;
-if (!mongo_uri) {
-  console.error("❌ MONGODB_URI is not defined");
-  process.exit(1);
-}
+/* ✅ FORCE PREFLIGHT RESPONSE (REQUIRED ON VERCEL) */
+app.options("/*", async (request, reply) => {
+  reply
+    .header("Access-Control-Allow-Origin", "https://acelucid-frontend-6xyw.vercel.app")
+    .header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+    .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+    .send();
+});
 
+/* ✅ MongoDB */
 mongoose
-  .connect(mongo_uri)
-  .then(() => console.log("🗃️ Connected to MongoDB Atlas"))
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("🗃️ MongoDB connected"))
   .catch((err) => {
-    console.error("❌ DB connection error:", err);
+    console.error(err);
     process.exit(1);
   });
 
+/* ✅ Routes */
 app.register(moviesRoutes, { prefix: "/api" });
 
-app.get("/", async () => {
-  return { status: "Backend running 🚀" };
-});
+/* ✅ Root */
+app.get("/", async () => ({ status: "Backend running 🚀" }));
 
-const start = async () => {
-  const port = process.env.PORT || 4000;
-  try {
-    await app.listen({ port, host: "0.0.0.0" });
-    console.log(`🚀 Server running on port ${port}`);
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
-};
-
-start();
+/* ✅ Start */
+const port = process.env.PORT || 4000;
+await app.listen({ port, host: "0.0.0.0" });
