@@ -1,5 +1,5 @@
 import axios from "axios";
-import Recommendation from "./recommendation.js"; // 1. Import the model
+import Recommendation from "./recommendation.js";
 
 export default async function (fastify) {
   fastify.post("/recommend", async (request, reply) => {
@@ -66,30 +66,26 @@ Do not add explanations or formatting.
         throw new Error("Empty AI response");
       }
 
-      // ✅ SAFELY extract JSON (handles extra text)
       const jsonStart = content.indexOf("{");
       const jsonEnd = content.lastIndexOf("}") + 1;
       const jsonString = content.slice(jsonStart, jsonEnd);
 
       const parsed = JSON.parse(jsonString);
 
-      // 2. SAVE TO DATABASE
       const newRecommendation = new Recommendation({
         userInput: genre,
         recommendedMovies: parsed.recommended_movies,
       });
 
-      await newRecommendation.save(); // This actually writes to MongoDB
+      await newRecommendation.save();
 
-      // 3. Send response
       return reply.send({
         genre: parsed.genre,
         movies: parsed.recommended_movies,
-        saved: true, // Optional flag for confirmation
+        saved: true, 
       });
     } catch (err) {
       fastify.log.error("AI Error:", err);
-      // ...
     }
   });
 }

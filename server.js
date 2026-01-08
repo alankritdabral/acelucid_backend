@@ -19,15 +19,15 @@ await app.register(cors, {
 const mongo_uri = process.env.MONGODB_URI;
 
 if (!mongo_uri) {
-  console.error("❌ MONGODB_URI is not defined");
+  console.error(" MONGODB_URI is not defined");
   process.exit(1);
 }
 
 mongoose
   .connect(mongo_uri)
-  .then(() => console.log("🗃️ Connected to MongoDB Atlas"))
+  .then(() => console.log(" Connected to MongoDB Atlas"))
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
+    console.error(" MongoDB connection error:", err);
     process.exit(1);
   });
 
@@ -36,14 +36,14 @@ app.register(moviesRoutes, { prefix: "/api" });
 
 
 app.get("/", async () => {
-  return { status: "Backend running 🚀" };
+  return { status: "Backend running " };
 });
 
 const start = async () => {
   const port = process.env.PORT || 4000;
   try {
     await app.listen({ port, host: "0.0.0.0" });
-    console.log(`🚀 Server running on port ${port}`);
+    console.log(` Server running on port ${port}`);
   } catch (err) {
     app.log.error(err);
     process.exit(1);
