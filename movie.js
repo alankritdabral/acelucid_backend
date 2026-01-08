@@ -1,8 +1,5 @@
-import Recommendation from "./recommendation.js";
 import axios from "axios";
-
-const NVIDIA_URL = process.env.NVIDIA_URL;
-const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;  
+import Recommendation from "./recommendation.js"; // 1. Import the model
 
 export default async function (fastify) {
   fastify.post("/recommend", async (request, reply) => {
@@ -13,67 +10,86 @@ export default async function (fastify) {
         return reply.status(400).send({ error: "Genre is required" });
       }
 
-      const prompt = `You are a JSON API.Respond ONLY with valid JSON.Do not include explanations or markdown.Return exactly 5 movie names for the given genre.
-                  Output format:
-                {
-                  genre: "${genre}",
-                  recommended_movies: [
-                    "Movie1",
-                    "Movie2",
-                    "Movie3",
-                    "Movie4",
-                    "Movie5"
-                  ],
-                }`;
+      const NVIDIA_URL = process.env.NVIDIA_URL;
+      const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY;
+
+      if (!NVIDIA_URL || !NVIDIA_API_KEY) {
+        fastify.log.error({
+          NVIDIA_URL,
+          NVIDIA_API_KEY: NVIDIA_API_KEY ? "Loaded" : "Missing",
+        });
+
+        return reply.status(500).send({
+          error: "Configuration error",
+          details: "Environment variables not loaded",
+        });
+      }
+
+      const prompt = `
+Respond ONLY with valid JSON.
+Do not add explanations or formatting.
+
+{
+  "genre": "${genre}",
+  "recommended_movies": [
+    "Movie1",
+    "Movie2",
+    "Movie3",
+    "Movie4",
+    "Movie5"
+  ]
+}
+`;
 
       const aiResponse = await axios.post(
         NVIDIA_URL,
         {
           model: "meta/llama-4-maverick-17b-128e-instruct",
           messages: [
-            { role: "system", content: "You are a helpful assistant." },
+            { role: "system", content: "You are a strict JSON API." },
             { role: "user", content: prompt },
           ],
           max_tokens: 256,
-          temperature: 1,
+          temperature: 0.7,
         },
         {
           headers: {
             Authorization: `Bearer ${NVIDIA_API_KEY}`,
             "Content-Type": "application/json",
-            Accept: "application/json",
           },
         }
       );
 
-      const message = aiResponse.data.choices?.[0]?.message;
-      const text = Array.isArray(message?.content)
-        ? message.content.map((block) => block.text ?? "").join("")
-        : message?.content ?? "";
+      let content = aiResponse.data?.choices?.[0]?.message?.content;
 
-      const movies = text
-        .split("\n")
-        .map((line) => line.replace(/^\d+[\).\s]*/, "").trim())
-        .filter(Boolean);
+      if (!content) {
+        throw new Error("Empty AI response");
+      }
 
-      const record = new Recommendation({
+      // ✅ SAFELY extract JSON (handles extra text)
+      const jsonStart = content.indexOf("{");
+      const jsonEnd = content.lastIndexOf("}") + 1;
+      const jsonString = content.slice(jsonStart, jsonEnd);
+
+      const parsed = JSON.parse(jsonString);
+
+      // 2. SAVE TO DATABASE
+      const newRecommendation = new Recommendation({
         userInput: genre,
-        recommendedMovies: movies,
+        recommendedMovies: parsed.recommended_movies,
       });
 
-      await record.save();
+      await newRecommendation.save(); // This actually writes to MongoDB
 
-      reply.send({
-        genre,
-        movies,
-        saved: true,
+      // 3. Send response
+      return reply.send({
+        genre: parsed.genre,
+        movies: parsed.recommended_movies,
+        saved: true, // Optional flag for confirmation
       });
     } catch (err) {
-      console.error("AI Error:", err.response?.data || err.message);
-      reply.status(500).send({
-        error: "Server error",
-        details: err.response?.data || err.message,
-      });
+      fastify.log.error("AI Error:", err);
+      // ...
     }
   });
 }

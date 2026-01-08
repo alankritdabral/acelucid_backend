@@ -9,7 +9,7 @@ dotenv.config();
 const app = Fastify({ logger: true });
 
 await app.register(cors, {
-  origin: "https://acelucid-frontend-6xyw.vercel.app",
+  origin: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
